@@ -2,9 +2,11 @@
 if (!isset($_SESSION) || !is_array($_SESSION)) session_start();
 $_SESSION['ownerID'] = '1';
 $_SESSION['username'] = 'admin';
-session_write_close();
+$_SESSION['google_id'] = '111';
 $ownerID = isset($_SESSION['ownerID']) ? $_SESSION['ownerID'] : "";
+$google_id = isset($_SESSION['google_id']) ? $_SESSION['google_id'] : "";
 $username = isset($_SESSION['username']) ? $_SESSION['username'] : "";
+
 chdir('ajax/');
 use PHPUnit\Framework\TestCase;
 
@@ -71,7 +73,7 @@ class ajaxQueryTest extends TestCase
 
     public function testInsertUser() {
 		ob_start();
-		$_REQUEST['p'] = 'saveGoogleUser';
+		$_REQUEST['p'] = 'saveUser';
 		$_REQUEST['id'] = '';
 		$_REQUEST['google_id'] = '111';
 		$_REQUEST['name'] = "onur yukselen";
@@ -87,7 +89,7 @@ class ajaxQueryTest extends TestCase
      */
     public function testInsertUser2() {
 		ob_start();
-		$_REQUEST['p'] = 'saveGoogleUser';
+		$_REQUEST['p'] = 'saveUser';
 		$_REQUEST['id'] = '';
 		$_REQUEST['google_id'] = '222';
 		$_REQUEST['name'] = "member name";
@@ -103,7 +105,7 @@ class ajaxQueryTest extends TestCase
      */
     public function testUpdateUser() {
 		ob_start();
-		$_REQUEST['p'] = 'saveGoogleUser';
+		$_REQUEST['p'] = 'saveUser';
 		$_REQUEST['id'] = '1';
 		$_REQUEST['google_id'] = '111';
 		$_REQUEST['name'] = "onur yukselen";
@@ -111,9 +113,9 @@ class ajaxQueryTest extends TestCase
 		$_REQUEST['username'] = "admin";
 		$_REQUEST['email'] = "admin@gmail.com";
 		include('ajaxquery.php');
-		$this->assertEquals(json_decode($db->getUserByGoogleId("111"))[0]->id,'1');
+		$this->assertEquals(json_decode($db->getUser($google_id))[0]->id,'1');
 		ob_end_clean();
-		$this->assertEquals(json_decode($db->getUserByGoogleId("111"))[0]->google_image,'https://lh6.googleusercontent.com/-j-GMmh9Xzd0/AAAAAAAAAAI/AAAAAAAAByM/HnRa5tGHpLU/s96-c/photo.jpg');
+		$this->assertEquals(json_decode($db->getUser($google_id))[0]->google_image,'https://lh6.googleusercontent.com/-j-GMmh9Xzd0/AAAAAAAAAAI/AAAAAAAAByM/HnRa5tGHpLU/s96-c/photo.jpg');
 	}
     /**
      * @depends testUpdateUser
@@ -1312,6 +1314,35 @@ class ajaxQueryTest extends TestCase
 		$this->assertEquals(json_decode($data)->id,'2');
 		ob_end_clean();
 	}
+    public function testCheckLoginDecline() {
+		ob_start();
+		$_REQUEST['p'] = 'checkLogin';
+        $_SESSION['google_id']="";
+		include('ajaxquery.php');
+		$this->assertEquals(json_decode($data)->error,'1');
+        ob_end_clean();
+        ob_start();
+        $_SESSION['ownerID'] = '1';
+        $_SESSION['username'] = 'admin';
+        $_SESSION['google_id'] = '111';
+        $ownerID = isset($_SESSION['ownerID']) ? $_SESSION['ownerID'] : "";
+        $google_id = isset($_SESSION['google_id']) ? $_SESSION['google_id'] : "";
+        $username = isset($_SESSION['username']) ? $_SESSION['username'] : "";
+		ob_end_clean();
+	}
+    /**
+     * @depends testInsertUser
+     * @depends testInsertUser2
+     * @depends testCheckLoginDecline
+     */
+    public function testCheckLogin() {
+		ob_start();
+		$_REQUEST['p'] = 'checkLogin';
+        $_SESSION['google_id']="111";
+		include('ajaxquery.php');
+		$this->assertEquals(json_decode($data)[0]->username,'admin');
+		ob_end_clean();
+	}
     /**
      * @depends testInsertGroup
      * @depends testInsertUser
@@ -1322,7 +1353,7 @@ class ajaxQueryTest extends TestCase
 		$_REQUEST['g_id'] = '1';
 		include('ajaxquery.php');
 		$this->assertEquals(json_decode($data)[0]->id,'2');
-		$this->assertEquals(json_decode($data)[0]->email,'member@gmail.com');
+		$this->assertEquals(json_decode($data)[0]->username,'member');
 		ob_end_clean();
 	}
     /**
@@ -1335,7 +1366,7 @@ class ajaxQueryTest extends TestCase
 		$_REQUEST['g_id'] = '1';
 		include('ajaxquery.php');
 		$this->assertEquals(json_decode($data)[0]->id,'1');
-		$this->assertEquals(json_decode($data)[0]->email,'admin@gmail.com');
+		$this->assertEquals(json_decode($data)[0]->username,'admin');
 		ob_end_clean();
 	}
     /**
@@ -1409,6 +1440,10 @@ class ajaxQueryTest extends TestCase
 		$this->assertEquals(json_decode($data)[0]->pp_name, 'test_run');
 		ob_end_clean();
 	}
+	
+	
+	
+
 	
 	
     /**

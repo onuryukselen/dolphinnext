@@ -70,18 +70,6 @@ class dbfuncs {
      }
      return json_encode($data);
    }
-    
-    function queryAVal($sql){
-        $res = $this->runSQL($sql);
-        if (is_object($res)){
-            $num_rows =$res->num_rows;
-            if (is_object($res) && $num_rows>0){
-                $row=$res->fetch_array();
-                return $row[0];
-            }
-        }
-        return "0";
-    }
 
    function insTable($sql)
    {
@@ -142,23 +130,19 @@ class dbfuncs {
         $pid = fread($pid_command, 2096);
         pclose($pid_command);
         if (empty($logArray)){
-            $log_array = array($logName => $pid);
+        $log_array = array($logName => $pid);
         } else {
-            $log_array[$logName] = $pid;
+        $log_array[$logName] = $pid;
         }
         return $log_array;
     }
 
     //full path for file
     function readFile($path){
-        if (file_exists($path)){
-           $handle = fopen($path, 'r');
-            $content = fread($handle, filesize($path));
-            fclose($handle);
-            return $content; 
-        } else {
-            return null;
-        }
+        $handle = fopen($path, 'r');
+        $content = fread($handle, filesize($path));
+        fclose($handle);
+        return $content;
     }
 
      //get nextflow input parameters
@@ -1003,7 +987,7 @@ class dbfuncs {
                 $where_pg = "pg.perms = 63";
                 $where_pr = "pr.perms = 63";
             }
-       $sql="SELECT DISTINCT p.id, p.name, p.perms, p.group_id, p.owner_id, p.publish
+       $sql="SELECT DISTINCT p.id, p.name, p.perms, p.group_id
              FROM process p
              LEFT JOIN user_group ug ON  p.group_id=ug.g_id
              INNER JOIN process_group pg
@@ -1023,7 +1007,7 @@ class dbfuncs {
             $userRoleArr = json_decode($this->getUserRole($ownerID));
             $userRole = $userRoleArr[0]->{'role'};
             if ($userRole == "admin"){
-                $sql="SELECT DISTINCT p.id, p.name, p.perms, p.group_id, p.owner_id, p.publish, p.pin
+                $sql="SELECT DISTINCT p.id, p.name, p.perms, p.group_id, p.owner_id, p.publish
                 FROM biocorepipe_save p
                 INNER JOIN pipeline_group pg
                 ON p.pipeline_group_id = pg.id and pg.group_name='$parent'
@@ -1040,7 +1024,7 @@ class dbfuncs {
                 $where_pg = "pg.perms = 63";
                 $where_pr = "pr.perms = 63";
             }
-       $sql="SELECT DISTINCT p.id, p.name, p.perms, p.group_id, p.pin
+       $sql="SELECT DISTINCT p.id, p.name, p.perms, p.group_id
              FROM biocorepipe_save p
              LEFT JOIN user_group ug ON  p.group_id=ug.g_id
              INNER JOIN pipeline_group pg
@@ -1073,7 +1057,7 @@ class dbfuncs {
 
 
 //    ---------------  Users ---------------
-    public function getUserByGoogleId($google_id) {
+    public function getUser($google_id) {
         $sql = "SELECT * FROM users WHERE google_id = '$google_id'";
         return self::queryTable($sql);
     }
@@ -1081,22 +1065,18 @@ class dbfuncs {
         $sql = "SELECT * FROM users WHERE id = '$id'";
         return self::queryTable($sql);
     }
-    public function getUserByEmail($email) {
-        $sql = "SELECT * FROM users WHERE email = '$email'";
+    public function getUserLess($google_id) {
+        $sql = "SELECT username, name, email, google_image FROM users WHERE google_id = '$google_id'";
         return self::queryTable($sql);
     }
-    public function insertGoogleUser($google_id, $email, $google_image) {
-        $sql = "INSERT INTO users(google_id, email, google_image, username, institute, lab, memberdate, date_created, date_modified, perms) VALUES
-			('$google_id', '$email', '$google_image', '', '', '', now() , now(), now(), '3')";
+    public function insertUser($google_id, $name, $email, $google_image, $username) {
+        $sql = "INSERT INTO users(google_id, name, email, google_image, username, institute, lab, memberdate, date_created, date_modified, perms) VALUES
+			('$google_id', '$name', '$email', '$google_image', '$username', '', '', now() , now(), now(), '3')";
         return self::insTable($sql);
     }
-    public function updateGoogleUser($id, $google_id, $email, $google_image) {
-        $sql = "UPDATE users SET google_id='$google_id', email='$email', google_image='$google_image', last_modified_user='$id' WHERE id = '$id'";
-        return self::runSQL($sql);
-    }
-    
-    public function updateUser($id, $name, $username, $institute, $lab, $verification) {
-        $sql = "UPDATE users SET name='$name', institute='$institute', username='$username', lab='$lab', verification='$verification', last_modified_user='$id' WHERE id = '$id'";
+
+    public function updateUser($id, $google_id, $name, $email, $google_image, $username) {
+        $sql = "UPDATE users SET id='$id', google_id='$google_id', name='$name', email='$email', google_image='$google_image', username='$username', last_modified_user='$id' WHERE id = '$id'";
         return self::runSQL($sql);
     }
 //    ------------- Profiles   ------------
@@ -1422,7 +1402,7 @@ class dbfuncs {
 		return self::queryTable($sql);
     }
     public function viewGroupMembers($g_id) {
-        $sql = "SELECT id, username, email
+        $sql = "SELECT id, username
 	           FROM users
 	           WHERE id in (
 		          SELECT u_id
@@ -1431,7 +1411,7 @@ class dbfuncs {
         return self::queryTable($sql);
     }
     public function getMemberAdd($g_id) {
-        $sql = "SELECT id, username, email
+        $sql = "SELECT id, username
 	           FROM users
 	           WHERE id NOT IN (
 		          SELECT u_id
